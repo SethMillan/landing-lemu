@@ -1,11 +1,505 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import LemonSVG from '../components/LemonSVG.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const problemCards = [
+	{ num: "01", title: "Subjetividad", desc: "Cada persona clasifica diferente. El estándar de calidad cambia con cada turno y cada operador." },
+	{ num: "02", title: "Velocidad limitada", desc: "El ojo humano se fatiga. La velocidad de clasificación baja conforme avanza la jornada." },
+	{ num: "03", title: "Pérdida de producto", desc: "Limones mal clasificados generan merma, rechazos en destino y pérdida de valor comercial." },
+];
+
+const solutionSteps = [
+	{ icon: "📷", title: "Captura", desc: "El limón pasa frente a cámaras de alta resolución que capturan múltiples ángulos en milisegundos." },
+	{ icon: "🧠", title: "Análisis IA", desc: "Nuestro modelo de visión artificial evalúa maduración, color, tamaño y defectos en tiempo real." },
+	{ icon: "✅", title: "Clasificación", desc: "Cada limón se asigna automáticamente a su categoría óptima. Sin errores humanos, sin fatiga." },
+];
+
+const floatingLemons = Array.from({ length: 6 }, (_, i) => ({
+	size: 30 + i * 12,
+	top: `${15 + i * 14}%`,
+	left: i % 2 === 0 ? `${5 + i * 3}%` : `${75 + i * 3}%`,
+	opacity: 0.06 + i * 0.01,
+	duration: `${4 + i}s`,
+	delay: `${i * 0.7}s`,
+}));
+
+const year = new Date().getFullYear();
 ---
 
 <Layout>
-	<Welcome />
+	<style is:global>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+
+		body {
+			background: #0a1a0f;
+			color: #e8f0e8;
+			font-family: 'DM Sans', sans-serif;
+			overflow-x: hidden;
+		}
+
+		.fade-up {
+			opacity: 0;
+			transform: translateY(40px);
+			transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+		}
+		.fade-up.visible { opacity: 1; transform: translateY(0); }
+		.fade-up.d1 { transition-delay: 0.1s; }
+		.fade-up.d2 { transition-delay: 0.2s; }
+		.fade-up.d3 { transition-delay: 0.3s; }
+		.fade-up.d4 { transition-delay: 0.4s; }
+
+		.glow-btn { position: relative; overflow: hidden; }
+		.glow-btn::after {
+			content: '';
+			position: absolute;
+			top: -50%; left: -50%;
+			width: 200%; height: 200%;
+			background: radial-gradient(circle, rgba(200,230,78,0.15) 0%, transparent 70%);
+			opacity: 0;
+			transition: opacity 0.4s;
+		}
+		.glow-btn:hover::after { opacity: 1; }
+
+		.grain {
+			position: fixed; top: 0; left: 0;
+			width: 100%; height: 100%;
+			pointer-events: none; z-index: 9999; opacity: 0.03;
+			background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+		}
+
+		@keyframes float {
+			0%, 100% { transform: translateY(0) rotate(0deg); }
+			50% { transform: translateY(-20px) rotate(5deg); }
+		}
+		@keyframes pulse-ring {
+			0% { transform: scale(1); opacity: 0.4; }
+			100% { transform: scale(1.5); opacity: 0; }
+		}
+
+		input, textarea { font-family: 'DM Sans', sans-serif; }
+		::selection { background: #c8e64e; color: #0a1a0f; }
+
+		/* Nav */
+		.nav-contact {
+			padding: 10px 24px; border-radius: 100px;
+			background: transparent; border: 1px solid #c8e64e;
+			color: #c8e64e; text-decoration: none;
+			font-size: 14px; font-weight: 600;
+			transition: background 0.3s, color 0.3s;
+		}
+		.nav-contact:hover { background: #c8e64e; color: #0a1a0f; }
+
+		/* Hero buttons */
+		.hero-btn-primary {
+			padding: 16px 36px; border-radius: 100px;
+			background: #c8e64e; color: #0a1a0f;
+			font-size: 16px; font-weight: 700;
+			text-decoration: none; display: inline-block;
+			position: relative; z-index: 1;
+			transition: transform 0.3s, box-shadow 0.3s;
+			box-shadow: 0 0 40px rgba(200,230,78,0.2);
+		}
+		.hero-btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 50px rgba(200,230,78,0.35);
+		}
+		.hero-btn-secondary {
+			padding: 16px 36px; border-radius: 100px;
+			background: rgba(200,230,78,0.08);
+			border: 1px solid rgba(200,230,78,0.15);
+			color: #c8e64e; font-size: 16px; font-weight: 600;
+			text-decoration: none; display: inline-block;
+			transition: background 0.3s;
+		}
+		.hero-btn-secondary:hover { background: rgba(200,230,78,0.15); }
+
+		/* Problem cards */
+		.problem-card {
+			padding: 36px; border-radius: 20px;
+			background: #132e1b; border: 1px solid rgba(200,230,78,0.15);
+			transition: border-color 0.3s, transform 0.3s; cursor: default;
+		}
+		.problem-card:hover { border-color: #c8e64e; transform: translateY(-4px); }
+
+		/* Form */
+		.form-input {
+			padding: 14px 20px; border-radius: 12px; font-size: 15px;
+			background: rgba(200,230,78,0.04);
+			border: 1px solid rgba(200,230,78,0.15);
+			color: #ffffff; outline: none; width: 100%;
+			font-family: 'DM Sans', sans-serif;
+			transition: border-color 0.2s;
+		}
+		.form-input:focus { border-color: #c8e64e; }
+		textarea.form-input { resize: vertical; }
+
+		.submit-btn {
+			padding: 16px 36px; border-radius: 100px;
+			background: #c8e64e; color: #0a1a0f;
+			font-size: 16px; font-weight: 700; border: none;
+			cursor: pointer; transition: transform 0.3s, box-shadow 0.3s;
+			margin-top: 8px; position: relative; z-index: 1; width: 100%;
+		}
+		.submit-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 40px rgba(200,230,78,0.3);
+		}
+
+		/* Tabs */
+		.tab-btn {
+			padding: 14px 28px; border-radius: 100px;
+			font-size: 14px; font-weight: 600;
+			border: 1px solid rgba(200,230,78,0.15);
+			background: transparent; color: #8fa88f;
+			cursor: pointer; transition: all 0.3s;
+		}
+		.tab-btn.active {
+			border-color: #c8e64e;
+			background: rgba(200,230,78,0.12);
+			color: #c8e64e;
+		}
+
+		/* Gradient text utility */
+		.gradient-text {
+			background: linear-gradient(135deg, #c8e64e, #f5e642);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			font-style: italic;
+		}
+	</style>
+
+	<div class="grain"></div>
+
+	<!-- NAV -->
+	<nav
+		id="main-nav"
+		style="position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 40px; background: transparent; border-bottom: 1px solid transparent; transition: all 0.4s ease; display: flex; justify-content: space-between; align-items: center;"
+	>
+		<div style="display: flex; align-items: center; gap: 12px;">
+			<LemonSVG size={36} />
+			<span style="font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: #c8e64e;">
+				Lemu
+			</span>
+		</div>
+		<a href="#contacto" class="nav-contact">Contáctanos</a>
+	</nav>
+
+	<!-- HERO -->
+	<section style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 24px 80px; position: relative; overflow: hidden;">
+		<!-- Floating lemons -->
+		{floatingLemons.map((lemon) => (
+			<div style={`position: absolute; top: ${lemon.top}; left: ${lemon.left}; opacity: ${lemon.opacity}; animation: float ${lemon.duration} ease-in-out infinite; animation-delay: ${lemon.delay}; pointer-events: none;`}>
+				<LemonSVG size={lemon.size} />
+			</div>
+		))}
+
+		<!-- Radial glow -->
+		<div style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(200,230,78,0.06) 0%, transparent 70%); pointer-events: none;"></div>
+
+		<!-- Status badge -->
+		<div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 100px; background: rgba(200,230,78,0.08); border: 1px solid rgba(200,230,78,0.15); margin-bottom: 32px; font-size: 13px; font-weight: 500; color: #c8e64e; letter-spacing: 0.5px; text-transform: uppercase;">
+			<span style="width: 8px; height: 8px; border-radius: 50%; background: #c8e64e; display: inline-block; position: relative; flex-shrink: 0;">
+				<span style="position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #c8e64e; animation: pulse-ring 2s infinite;"></span>
+			</span>
+			En desarrollo · Buscando early adopters
+		</div>
+
+		<h1 style="font-family: 'Playfair Display', serif; font-size: clamp(42px, 6vw, 80px); font-weight: 700; line-height: 1.05; max-width: 800px; margin-bottom: 24px; letter-spacing: -2px;">
+			Clasificación de limón
+			<span class="gradient-text">inteligente</span>
+		</h1>
+
+		<p style="font-size: clamp(16px, 2vw, 20px); line-height: 1.7; color: #8fa88f; max-width: 560px; margin-bottom: 48px; font-weight: 300;">
+			Visión artificial que analiza maduración, color y tamaño en tiempo real.
+			Menos merma. Más consistencia. Cero subjetividad.
+		</p>
+
+		<div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+			<a href="#contacto" class="hero-btn-primary glow-btn" data-set-tab="demo">
+				Probar la demo →
+			</a>
+			<a href="#contacto" class="hero-btn-secondary" data-set-tab="investor">
+				Oportunidad de inversión
+			</a>
+		</div>
+
+		<!-- Scroll indicator -->
+		<div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; color: #8fa88f; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">
+			<span>Scroll</span>
+			<div style="width: 1px; height: 40px; background: linear-gradient(to bottom, #c8e64e, transparent);"></div>
+		</div>
+	</section>
+
+	<!-- PROBLEM -->
+	<section id="problema" style="padding: 100px 24px; position: relative;">
+		<div style="max-width: 1000px; margin: 0 auto;">
+			<div class="fade-up">
+				<p style="font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #c8e64e; margin-bottom: 16px;">
+					El problema
+				</p>
+				<h2 style="font-family: 'Playfair Display', serif; font-size: clamp(28px, 4vw, 48px); font-weight: 700; line-height: 1.15; max-width: 700px; margin-bottom: 60px; letter-spacing: -1px;">
+					La clasificación manual es
+					<span style="color: #f5e642; font-style: italic;">lenta, inconsistente y costosa</span>
+				</h2>
+			</div>
+
+			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 24px;">
+				{problemCards.map((item, i) => (
+					<div class={`fade-up d${i + 1} problem-card`}>
+						<span style="font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 700; color: #c8e64e; opacity: 0.2; display: block; margin-bottom: 16px; line-height: 1;">
+							{item.num}
+						</span>
+						<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px; color: #ffffff;">
+							{item.title}
+						</h3>
+						<p style="font-size: 15px; line-height: 1.7; color: #8fa88f; font-weight: 300;">
+							{item.desc}
+						</p>
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- SOLUTION -->
+	<section id="solucion" style="padding: 100px 24px; position: relative; background: linear-gradient(180deg, #0a1a0f 0%, #0f2518 50%, #0a1a0f 100%);">
+		<div style="max-width: 1000px; margin: 0 auto;">
+			<div class="fade-up">
+				<p style="font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #c8e64e; margin-bottom: 16px;">
+					La solución
+				</p>
+				<h2 style="font-family: 'Playfair Display', serif; font-size: clamp(28px, 4vw, 48px); font-weight: 700; line-height: 1.15; max-width: 700px; margin-bottom: 24px; letter-spacing: -1px;">
+					Visión artificial que
+					<span style="color: #c8e64e; font-style: italic;">nunca se cansa</span>
+				</h2>
+				<p style="font-size: 18px; line-height: 1.7; color: #8fa88f; max-width: 600px; margin-bottom: 80px; font-weight: 300;">
+					Lemu utiliza cámaras de alta resolución y modelos de inteligencia artificial
+					para clasificar cada limón con precisión milimétrica, 24/7.
+				</p>
+			</div>
+
+			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 0; position: relative;">
+				{solutionSteps.map((step, i) => (
+					<div
+						class={`fade-up d${i + 1}`}
+						style={`padding: 40px 36px; text-align: center; border-right: ${i < 2 ? '1px solid rgba(200,230,78,0.15)' : 'none'}; position: relative;`}
+					>
+						<div style="width: 72px; height: 72px; border-radius: 20px; background: rgba(200,230,78,0.08); border: 1px solid rgba(200,230,78,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px;">
+							{step.icon}
+						</div>
+						{i < 2 && (
+							<div style="position: absolute; top: 16px; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: #0f2518; border: 1px solid rgba(200,230,78,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #c8e64e; z-index: 1;">
+								→
+							</div>
+						)}
+						<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px; color: #ffffff;">{step.title}</h3>
+						<p style="font-size: 15px; line-height: 1.7; color: #8fa88f; font-weight: 300;">{step.desc}</p>
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- CONTACT -->
+	<section
+		id="contacto"
+		style="padding: 100px 24px 120px; background: linear-gradient(180deg, #0a1a0f 0%, #0f2518 100%);"
+	>
+		<div style="max-width: 640px; margin: 0 auto;">
+			<div class="fade-up" style="text-align: center; margin-bottom: 48px;">
+				<h2 style="font-family: 'Playfair Display', serif; font-size: clamp(28px, 4vw, 44px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; letter-spacing: -1px;">
+					Sé parte del
+					<span class="gradient-text">futuro citrícola</span>
+				</h2>
+				<p style="font-size: 16px; color: #8fa88f; font-weight: 300; line-height: 1.7;">
+					Ya sea que quieras probar Lemu en tu operación o invertir en el proyecto,
+					queremos escucharte.
+				</p>
+			</div>
+
+			<!-- Tabs -->
+			<div class="fade-up d1" style="display: flex; gap: 12px; margin-bottom: 32px; justify-content: center; flex-wrap: wrap;">
+				<button class="tab-btn" data-tab="demo" id="tab-demo">🍋 Quiero probar la demo</button>
+				<button class="tab-btn" data-tab="investor" id="tab-investor">💰 Quiero invertir</button>
+			</div>
+
+			<!-- Form (hidden until tab selected) -->
+			<div id="form-wrapper" style="display: none;">
+				<div style="padding: 40px; border-radius: 24px; background: #132e1b; border: 1px solid rgba(200,230,78,0.15);">
+					<!-- Form view -->
+					<div id="form-view">
+						<p id="form-description" style="font-size: 14px; color: #8fa88f; margin-bottom: 24px; font-weight: 300;"></p>
+						<div style="display: flex; flex-direction: column; gap: 16px;">
+							<input id="input-name" class="form-input" placeholder="Tu nombre *" type="text" />
+							<input id="input-email" class="form-input" placeholder="Correo electrónico *" type="email" />
+							<input id="input-company" class="form-input" type="text" />
+							<textarea id="input-message" class="form-input" rows="3"></textarea>
+							<button id="submit-btn" class="submit-btn glow-btn"></button>
+							<p id="form-error" style="display: none; color: #ff6b6b; font-size: 13px; text-align: center; margin-top: 4px;"></p>
+						</div>
+					</div>
+
+					<!-- Success view -->
+					<div id="success-view" style="display: none; text-align: center; padding: 20px 0;">
+						<div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+						<h3 style="font-size: 22px; font-weight: 700; margin-bottom: 12px; color: #ffffff;">¡Gracias por tu interés!</h3>
+						<p id="success-message" style="color: #8fa88f; font-size: 15px; font-weight: 300;"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- FOOTER -->
+	<footer style="padding: 40px 24px; border-top: 1px solid rgba(200,230,78,0.15); text-align: center;">
+		<div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px;">
+			<LemonSVG size={24} />
+			<span style="font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: #c8e64e;">Lemu</span>
+		</div>
+		<p style="font-size: 13px; color: #8fa88f; font-weight: 300;">Clasificación inteligente de limón · Michoacán, México</p>
+		<p style="font-size: 12px; color: #8fa88f; opacity: 0.5; margin-top: 8px;">
+			© {year} Lemu. Todos los derechos reservados.
+		</p>
+	</footer>
+
+	<script>
+		// ── NAV SCROLL ──
+		const nav = document.getElementById('main-nav')!;
+		window.addEventListener('scroll', () => {
+			if (window.scrollY > 50) {
+				nav.style.background = 'rgba(10,26,15,0.9)';
+				nav.style.backdropFilter = 'blur(20px)';
+				nav.style.borderBottom = '1px solid rgba(200,230,78,0.15)';
+			} else {
+				nav.style.background = 'transparent';
+				nav.style.backdropFilter = 'none';
+				nav.style.borderBottom = '1px solid transparent';
+			}
+		}, { passive: true });
+
+		// ── INTERSECTION OBSERVER (fade-up) ──
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) entry.target.classList.add('visible');
+				});
+			},
+			{ threshold: 0.15 }
+		);
+		document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+
+		// ── FORM STATE ──
+		let activeTab: string | null = null;
+
+		const copy = {
+			demo: {
+				description: 'Déjanos tus datos y te contactaremos para agendar una demostración del concepto.',
+				company: 'Empresa / Empacadora',
+				message: '¿Qué volumen manejas? ¿Qué retos tienes hoy?',
+				submit: 'Agendar demostración',
+				success: 'Te contactaremos pronto para agendar una demostración.',
+			},
+			investor: {
+				description: 'Cuéntanos sobre ti y te compartiremos el deck de inversión y próximos pasos.',
+				company: 'Fondo / Empresa',
+				message: 'Cuéntanos sobre tu interés en el proyecto',
+				submit: 'Solicitar información',
+				success: 'Te enviaremos información detallada sobre la oportunidad de inversión.',
+			},
+		} as const;
+
+		function setActiveTab(tab: string) {
+			activeTab = tab;
+
+			document.querySelectorAll('.tab-btn').forEach((btn) => {
+				btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === tab);
+			});
+
+			const key = tab as keyof typeof copy;
+			(document.getElementById('form-description') as HTMLElement).textContent = copy[key].description;
+			(document.getElementById('input-company') as HTMLInputElement).placeholder = copy[key].company;
+			(document.getElementById('input-message') as HTMLTextAreaElement).placeholder = copy[key].message;
+			(document.getElementById('submit-btn') as HTMLButtonElement).textContent = copy[key].submit;
+
+			// Reset inputs and views
+			(document.getElementById('input-name') as HTMLInputElement).value = '';
+			(document.getElementById('input-email') as HTMLInputElement).value = '';
+			(document.getElementById('input-company') as HTMLInputElement).value = '';
+			(document.getElementById('input-message') as HTMLTextAreaElement).value = '';
+			(document.getElementById('form-view') as HTMLElement).style.display = 'block';
+			(document.getElementById('success-view') as HTMLElement).style.display = 'none';
+			(document.getElementById('form-error') as HTMLElement).style.display = 'none';
+
+			const wrapper = document.getElementById('form-wrapper') as HTMLElement;
+			wrapper.style.display = 'block';
+		}
+
+		// Tab buttons
+		document.querySelectorAll('.tab-btn').forEach((btn) => {
+			btn.addEventListener('click', () => setActiveTab((btn as HTMLElement).dataset.tab!));
+		});
+
+		// Hero buttons (set tab before scrolling to #contacto)
+		document.querySelectorAll('[data-set-tab]').forEach((btn) => {
+			btn.addEventListener('click', () => setActiveTab((btn as HTMLElement).dataset.setTab!));
+		});
+
+		// Form submit
+		document.getElementById('submit-btn')!.addEventListener('click', async () => {
+			const name  = (document.getElementById('input-name') as HTMLInputElement).value.trim();
+			const email = (document.getElementById('input-email') as HTMLInputElement).value.trim();
+			const errorEl = document.getElementById('form-error') as HTMLElement;
+
+			if (!name || !email || !activeTab) {
+				errorEl.textContent = 'Por favor completa tu nombre y correo.';
+				errorEl.style.display = 'block';
+				return;
+			}
+
+			const btn = document.getElementById('submit-btn') as HTMLButtonElement;
+			const key = activeTab as keyof typeof copy;
+
+			btn.disabled = true;
+			btn.textContent = 'Enviando...';
+			errorEl.style.display = 'none';
+
+			const company = (document.getElementById('input-company') as HTMLInputElement).value.trim();
+			const message = (document.getElementById('input-message') as HTMLTextAreaElement).value.trim();
+
+			try {
+				const res = await fetch('https://api.web3forms.com/submit', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+					body: JSON.stringify({
+						access_key: import.meta.env.PUBLIC_WEB3FORMS_KEY,
+						subject: activeTab === 'demo'
+							? `Lemu – Solicitud de demo de ${name}`
+							: `Lemu – Interés de inversión de ${name}`,
+						from_name: 'Lemu Landing',
+						name,
+						email,
+						empresa: company,
+						mensaje: message,
+						tipo: activeTab === 'demo' ? 'Demo' : 'Inversión',
+					}),
+				});
+
+				const data = await res.json();
+
+				if (data.success) {
+					(document.getElementById('form-view') as HTMLElement).style.display = 'none';
+					(document.getElementById('success-view') as HTMLElement).style.display = 'block';
+					(document.getElementById('success-message') as HTMLElement).textContent = copy[key].success;
+				} else {
+					throw new Error(data.message || 'Error al enviar');
+				}
+			} catch {
+				btn.disabled = false;
+				btn.textContent = copy[key].submit;
+				errorEl.textContent = 'Hubo un problema al enviar. Intenta de nuevo.';
+				errorEl.style.display = 'block';
+			}
+		});
+	</script>
 </Layout>
