@@ -1,0 +1,14 @@
+---
+interface Props {
+	size?: number;
+}
+const { size = 60 } = Astro.props;
+---
+
+<svg width={size} height={size} viewBox="0 0 100 100">
+	<ellipse cx="50" cy="52" rx="32" ry="38" fill="#f5e642" opacity="0.9" />
+	<ellipse cx="50" cy="52" rx="32" ry="38" fill="none" stroke="#9abf2a" stroke-width="1.5" />
+	<ellipse cx="50" cy="50" rx="28" ry="34" fill="none" stroke="#faf39a" stroke-width="0.5" opacity="0.5" />
+	<path d="M50 14 Q55 8 52 2 Q48 6 50 14Z" fill="#9abf2a" />
+	<ellipse cx="44" cy="46" rx="4" ry="6" fill="#faf39a" opacity="0.3" />
+</svg>
